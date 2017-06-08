@@ -539,19 +539,51 @@ int main(int argc, char **argv)
             usage();
     }
 
+    enum {KSF_NONE, KSF_1x1, KSF_NON_1x1} kernel_size_filter = KSF_NONE;
+
     std::vector<int> enabled_modes
         = {FWD_CONVOLUTION, BWD_F_CONVOLUTION, BWD_D_CONVOLUTION};
     if (argc > 3) {
-        if (argv[3] == std::string("--fwd"))
+        if (argv[3] == std::string("--fwd")) {
             enabled_modes = {FWD_CONVOLUTION};
-        else if (argv[3] == std::string("--bwd_d"))
+            kernel_size_filter = KSF_NONE;
+        } else if (argv[3] == std::string("--bwd_d")) {
             enabled_modes = {BWD_D_CONVOLUTION};
-        else if (argv[3] == std::string("--bwd_f"))
+            kernel_size_filter = KSF_NONE;
+        } else if (argv[3] == std::string("--bwd_f")) {
             enabled_modes = {BWD_F_CONVOLUTION};
-        else if (argv[3] == std::string("--all"))
+            kernel_size_filter = KSF_NONE;
+        } else if (argv[3] == std::string("--all")) {
             enabled_modes
                 = {FWD_CONVOLUTION, BWD_F_CONVOLUTION, BWD_D_CONVOLUTION};
-        else
+            kernel_size_filter = KSF_NONE;
+        } else if (argv[3] == std::string("--fwd-1x1")) {
+            enabled_modes = {FWD_CONVOLUTION};
+            kernel_size_filter = KSF_1x1;
+        } else if (argv[3] == std::string("--bwd_d-1x1")) {
+            enabled_modes = {BWD_D_CONVOLUTION};
+            kernel_size_filter = KSF_1x1;
+        } else if (argv[3] == std::string("--bwd_f-1x1")) {
+            enabled_modes = {BWD_F_CONVOLUTION};
+            kernel_size_filter = KSF_1x1;
+        } else if (argv[3] == std::string("--all-1x1")) {
+            enabled_modes
+                = {FWD_CONVOLUTION, BWD_F_CONVOLUTION, BWD_D_CONVOLUTION};
+            kernel_size_filter = KSF_1x1;
+        } else if (argv[3] == std::string("--fwd-non-1x1")) {
+            enabled_modes = {FWD_CONVOLUTION};
+            kernel_size_filter = KSF_NON_1x1;
+        } else if (argv[3] == std::string("--bwd_d-non-1x1")) {
+            enabled_modes = {BWD_D_CONVOLUTION};
+            kernel_size_filter = KSF_NON_1x1;
+        } else if (argv[3] == std::string("--bwd_f-non-1x1")) {
+            enabled_modes = {BWD_F_CONVOLUTION};
+            kernel_size_filter = KSF_NON_1x1;
+        } else if (argv[3] == std::string("--all-non-1x1")) {
+            enabled_modes
+                = {FWD_CONVOLUTION, BWD_F_CONVOLUTION, BWD_D_CONVOLUTION};
+            kernel_size_filter = KSF_NON_1x1;
+        } else
             usage();
     }
 
@@ -583,6 +615,12 @@ int main(int argc, char **argv)
 
             if (minibatch_override)
                 p.minibatch = minibatch_override;
+
+            bool is_1x1 = (p.fw == 1 && p.fh == 1);
+            if (kernel_size_filter == KSF_1x1 && !is_1x1)
+                continue;
+            if (kernel_size_filter == KSF_NON_1x1 && is_1x1)
+                continue;
 
             auto r = bench_conv(p, m, skip_padding);
             if (csv_output)
